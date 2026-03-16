@@ -1,0 +1,95 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\lin_zizhuo\\.ohos\\config\\default_machine_control_3EXZWALWD_EE8QJUAZwjtwBbFSD7dt7DY8omhFZviAk=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BB42CBA8689C06437CC67665E5D0AF8B44B2FB33B4F1FB722AB30DB0BC37AB9E3C27C51FE2644CA",
+          "profile": "C:\\Users\\lin_zizhuo\\.ohos\\config\\default_machine_control_3EXZWALWD_EE8QJUAZwjtwBbFSD7dt7DY8omhFZviAk=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\lin_zizhuo\\.ohos\\config\\default_machine_control_3EXZWALWD_EE8QJUAZwjtwBbFSD7dt7DY8omhFZviAk=.p12",
+          "storePassword": "0000001B9D88CFB029395BEBE83CE76E6E8AAF6DF38568256278B9D79DB026E47DDD22788BC33F17BAE1E9"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.0.1(21)",
+        "compatibleSdkVersion": "6.0.1(21)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug"
+      },
+      {
+        "name": "release"
+      }
+    ],
+    "capabilities": [
+      {
+        "bundleName": "com.example.machine_control",
+        "config": [
+          {
+            "name": "Map Kit",
+            "capability": "com.huawei.service.mapkit"
+          }
+        ]
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "datastore",
+      "srcPath": "./commons/datastore",
+    },
+    {
+      "name": "uikit",
+      "srcPath": "./commons/uikit",
+    },
+    {
+      "name": "utils",
+      "srcPath": "./commons/utils",
+    },
+    {
+      "name": "auth",
+      "srcPath": "./features/auth",
+    },
+    {
+      "name": "control",
+      "srcPath": "./features/control",
+    },
+    {
+      "name": "map",
+      "srcPath": "./features/map",
+    },
+    {
+      "name": "monitor",
+      "srcPath": "./features/monitor",
+    }
+  ]
+}

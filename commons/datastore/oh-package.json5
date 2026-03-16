@@ -1,0 +1,9 @@
+{
+  "name": "datastore",
+  "version": "1.0.0",
+  "description": "数据库模块",
+  "main": "Index.ets",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {}
+}

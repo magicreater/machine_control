@@ -1,0 +1,20 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "工业机器控制监控系统手机端"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "工业机器控制监控系统"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "机器控制系统"
+    },
+    {
+      "name": "location_permission_reason",
+      "value": "需要位置权限用于在地图上显示设备位置"
+    }
+  ]
+}

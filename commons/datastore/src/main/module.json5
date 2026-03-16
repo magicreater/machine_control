@@ -1,0 +1,9 @@
+{
+  "module": {
+    "name": "datastore",
+    "type": "har",
+    "deviceTypes": [
+      "default"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "datastore": "file:../commons/datastore",
+    "utils": "file:../commons/utils",
+    "uikit": "file:../commons/uikit",
+    "auth": "file:../features/auth",
+    "map": "file:../features/map",
+    "monitor": "file:../features/monitor",
+    "control": "file:../features/control"
+  }
+}
+

@@ -1,0 +1,9 @@
+{
+  "module": {
+    "name": "control",
+    "type": "har",
+    "deviceTypes": [
+      "default"
+    ]
+  }
+}
