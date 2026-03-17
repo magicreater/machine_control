@@ -1,4 +1,4 @@
-import { router } from '@kit.ArkUI';
+import { router, promptAction } from '@kit.ArkUI';
 import { DeviceModel, DeviceDao, DeviceStatus } from 'datastore';
 import { AuthManager, TimerManager, Constants } from 'utils';
 import { AppColors, AppTypography, StatusIndicator, GradientButton, LoadingOverlay } from 'uikit';
@@ -16,6 +16,7 @@ struct DeviceDetailPage {
   @State private device: DeviceModel | null = null;
   @State private isLoading: boolean = true;
   @State private deviceId: string = '';
+  @State private hasShownLoadError: boolean = false;
 
   aboutToAppear(): void {
     const params = router.getParams() as RouteParams;
@@ -33,8 +34,18 @@ struct DeviceDetailPage {
   private async loadDevice(): Promise<void> {
     try {
       this.device = await DeviceDao.getInstance().getDeviceById(this.deviceId);
+      if (this.device) {
+        this.hasShownLoadError = false;
+      } else if (!this.hasShownLoadError) {
+        promptAction.showToast({ message: '设备不存在或已被删除', duration: 2000 });
+        this.hasShownLoadError = true;
+      }
     } catch (error) {
       console.error('Failed to load device:', error);
+      if (!this.hasShownLoadError) {
+        promptAction.showToast({ message: '加载设备详情失败，请检查后端服务', duration: 2000 });
+        this.hasShownLoadError = true;
+      }
     } finally {
       this.isLoading = false;
     }

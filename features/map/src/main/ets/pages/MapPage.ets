@@ -1,5 +1,6 @@
 import { mapCommon, map, MapComponent } from "@kit.MapKit";
 import { geoLocationManager } from "@kit.LocationKit";
+import { promptAction } from "@kit.ArkUI";
 import { DeviceModel, DeviceDao, DeviceStatus } from "datastore";
 import { TimerManager, Constants } from "utils";
 import { AppColors, AppTypography, LoadingOverlay } from "uikit";
@@ -14,6 +15,7 @@ export struct MapPage {
   @State private selectedDevice: DeviceModel | null = null;
   @State private showDeviceInfo: boolean = false;
   @State private mapController: map.MapComponentController | undefined = undefined;
+  @State private hasShownLoadError: boolean = false;
   private mapOptions?: mapCommon.MapOptions;
 
   aboutToAppear(): void {
@@ -49,8 +51,13 @@ export struct MapPage {
       if (this.mapController) {
         this.addDeviceMarkers();
       }
+      this.hasShownLoadError = false;
     } catch (error) {
       console.error("Failed to load devices:", error);
+      if (!this.hasShownLoadError) {
+        promptAction.showToast({ message: "加载地图数据失败，请检查后端服务", duration: 2000 });
+        this.hasShownLoadError = true;
+      }
     } finally {
       this.isLoading = false;
     }

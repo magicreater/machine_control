@@ -19,6 +19,7 @@ struct LockControlPage {
   @State private deviceId: string = '';
   @State private slideConfirmed: boolean = false;
   @State private showConfirmDialog: boolean = false;
+  @State private hasShownLoadError: boolean = false;
 
   aboutToAppear(): void {
     const params = router.getParams() as RouteParams;
@@ -31,8 +32,13 @@ struct LockControlPage {
   private async loadDevice(): Promise<void> {
     try {
       this.device = await DeviceDao.getInstance().getDeviceById(this.deviceId);
+      this.hasShownLoadError = false;
     } catch (error) {
       console.error('Failed to load device:', error);
+      if (!this.hasShownLoadError) {
+        promptAction.showToast({ message: '加载设备失败，请检查后端服务', duration: 2000 });
+        this.hasShownLoadError = true;
+      }
     } finally {
       this.isLoading = false;
     }

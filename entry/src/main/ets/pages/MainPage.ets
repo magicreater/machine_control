@@ -1,4 +1,4 @@
-import { router } from '@kit.ArkUI';
+import { router, promptAction } from '@kit.ArkUI';
 import { DeviceModel, DeviceDao, DeviceStatus } from 'datastore';
 import { AuthManager, TimerManager, Constants } from 'utils';
 import { AppColors, AppTypography, DeviceCard, StatCard, LoadingOverlay } from 'uikit';
@@ -16,6 +16,7 @@ struct MainPage {
   @State private isRefreshing: boolean = false;
   @State private filterStatus: number = -1;
   @State private searchText: string = '';
+  @State private hasShownLoadError: boolean = false;
   // 统计
   @State private totalCount: number = 0;
   @State private workingCount: number = 0;
@@ -38,8 +39,13 @@ struct MainPage {
       const allDevices = await DeviceDao.getInstance().getAllDevices();
       this.devices = allDevices;
       this.updateStats(allDevices);
+      this.hasShownLoadError = false;
     } catch (error) {
       console.error('Failed to load devices:', error);
+      if (!this.hasShownLoadError) {
+        promptAction.showToast({ message: '加载设备失败，请检查后端服务', duration: 2000 });
+        this.hasShownLoadError = true;
+      }
     } finally {
       this.isLoading = false;
       this.isRefreshing = false;

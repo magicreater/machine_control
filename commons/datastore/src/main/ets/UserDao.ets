@@ -1,6 +1,11 @@
-import { relationalStore } from '@kit.ArkData';
-import { UserModel, UserModelOptions, UserRole } from './models/UserModel';
-import { Database } from './Database';
+import { UserModel, UserRole } from './models/UserModel';
+import { ApiClient } from './ApiClient';
+import { mapUserDtoToModel, UserDto } from './ApiHelpers';
+
+interface LoginPayload {
+    username: string;
+    password: string;
+}
 
 /**
  * 用户数据访问对象
@@ -17,104 +22,53 @@ export class UserDao {
         return UserDao.instance;
     }
 
-    private getStore(): relationalStore.RdbStore {
-        return Database.getInstance().getStore();
-    }
-
     /**
      * 用户登录验证
      */
     async validateUser(username: string, password: string): Promise<UserModel | null> {
-        const predicates = new relationalStore.RdbPredicates('users');
-        predicates.equalTo('username', username);
-        predicates.equalTo('password_hash', password); // 实际应用中应比对加密后的密码
-
-        const result = await this.getStore().query(predicates);
-
-        let user: UserModel | null = null;
-        if (result.goToNextRow()) {
-            user = this.resultToUser(result);
+        const payload: LoginPayload = {
+            username: username,
+            password: password
+        };
+        try {
+            const dto = await ApiClient.getInstance().post<UserDto>('/auth/login', payload);
+            return mapUserDtoToModel(dto);
+        } catch (error) {
+            if (error instanceof Error && error.message === '用户名或密码错误') {
+                return null;
+            }
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            }
+            throw new Error('登录失败，请检查后端服务');
         }
-        result.close();
-        return user;
     }
 
     /**
      * 根据ID获取用户
      */
     async getUserById(id: string): Promise<UserModel | null> {
-        const predicates = new relationalStore.RdbPredicates('users');
-        predicates.equalTo('id', id);
-
-        const result = await this.getStore().query(predicates);
-
-        let user: UserModel | null = null;
-        if (result.goToNextRow()) {
-            user = this.resultToUser(result);
-        }
-        result.close();
-        return user;
+        return null;
     }
 
     /**
      * 根据用户名获取用户
      */
     async getUserByUsername(username: string): Promise<UserModel | null> {
-        const predicates = new relationalStore.RdbPredicates('users');
-        predicates.equalTo('username', username);
-
-        const result = await this.getStore().query(predicates);
-
-        let user: UserModel | null = null;
-        if (result.goToNextRow()) {
-            user = this.resultToUser(result);
-        }
-        result.close();
-        return user;
+        return null;
     }
 
     /**
      * 创建用户
      */
     async createUser(username: string, password: string, role: UserRole): Promise<boolean> {
-        const values: relationalStore.ValuesBucket = {
-            id: `USR${Date.now()}`,
-            username: username,
-            password_hash: password, // 实际应用中应加密
-            role: role,
-            created_at: Date.now()
-        };
-
-        const rowId = await this.getStore().insert('users', values);
-        return rowId !== -1;
+        return false;
     }
 
     /**
      * 获取所有用户
      */
     async getAllUsers(): Promise<UserModel[]> {
-        const predicates = new relationalStore.RdbPredicates('users');
-        const result = await this.getStore().query(predicates);
-        const users: UserModel[] = [];
-
-        while (result.goToNextRow()) {
-            users.push(this.resultToUser(result));
-        }
-        result.close();
-        return users;
-    }
-
-    /**
-     * 将查询结果转换为用户模型
-     */
-    private resultToUser(result: relationalStore.ResultSet): UserModel {
-        const options: UserModelOptions = {
-            id: result.getString(result.getColumnIndex('id')),
-            username: result.getString(result.getColumnIndex('username')),
-            passwordHash: result.getString(result.getColumnIndex('password_hash')),
-            role: result.getString(result.getColumnIndex('role')) as UserRole,
-            createdAt: result.getLong(result.getColumnIndex('created_at'))
-        };
-        return new UserModel(options);
+        return [];
     }
 }
