@@ -1,6 +1,6 @@
 import { router, promptAction } from '@kit.ArkUI';
 import { DeviceModel, DeviceDao, DeviceStatus } from 'datastore';
-import { AuthManager, TimerManager, Constants } from 'utils';
+import { AuthManager, TimerManager, Constants, DeviceRefreshCoordinator, DeviceRefreshEvent } from 'utils';
 import { AppColors, AppTypography, DeviceCard, StatCard, LoadingOverlay } from 'uikit';
 import { MapPage } from 'map';
 
@@ -24,9 +24,15 @@ struct MainPage {
   @State private lockedCount: number = 0;
 
   private tabController: TabsController = new TabsController();
+  private readonly refreshListenerKey: string = 'main_page_device_refresh';
+  private lastHandledRefreshVersion: number = 0;
 
   aboutToAppear(): void {
-    this.loadDevices();
+    this.subscribeToRefreshEvents();
+    const hasPendingRefresh = this.syncPendingDeviceRefresh();
+    if (!hasPendingRefresh) {
+      this.loadDevices();
+    }
     this.startAutoRefresh();
   }
 
@@ -66,6 +72,34 @@ struct MainPage {
       Constants.REFRESH_INTERVAL,
       false
     );
+  }
+
+  private subscribeToRefreshEvents(): void {
+    DeviceRefreshCoordinator.getInstance().subscribe(this.refreshListenerKey, (event: DeviceRefreshEvent) => {
+      void this.handleDeviceRefreshEvent(event);
+    });
+  }
+
+  private syncPendingDeviceRefresh(): boolean {
+    const latestVersion = DeviceRefreshCoordinator.getInstance().getVersion();
+    if (latestVersion <= this.lastHandledRefreshVersion) {
+      return false;
+    }
+
+    this.lastHandledRefreshVersion = latestVersion;
+    this.isRefreshing = true;
+    void this.loadDevices();
+    return true;
+  }
+
+  private async handleDeviceRefreshEvent(event: DeviceRefreshEvent): Promise<void> {
+    if (event.version <= this.lastHandledRefreshVersion) {
+      return;
+    }
+
+    this.lastHandledRefreshVersion = event.version;
+    this.isRefreshing = true;
+    await this.loadDevices();
   }
 
   private getFilteredDevices(): DeviceModel[] {

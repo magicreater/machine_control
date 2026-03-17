@@ -15,4 +15,5 @@
 backend/.dev-backend.pid
 backend/.dev-backend.stdout.log
 backend/.dev-backend.stderr.log
+.worktrees/
 

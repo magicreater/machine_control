@@ -1,6 +1,6 @@
 import { router, promptAction } from '@kit.ArkUI';
 import { DeviceModel, DeviceDao } from 'datastore';
-import { AuthManager } from 'utils';
+import { AuthManager, DeviceRefreshCoordinator } from 'utils';
 import { AppColors, AppTypography, SlideToConfirm, LoadingOverlay, GradientButton } from 'uikit';
 
 interface RouteParams {
@@ -55,6 +55,7 @@ struct LockControlPage {
 
       if (success) {
         await this.loadDevice();
+        DeviceRefreshCoordinator.getInstance().publishLockStatusChanged(this.device.id);
         promptAction.showToast({ message: newLockState ? '设备已锁定' : '设备已解锁', duration: 2000 });
         setTimeout(() => router.back(), 1500);
       } else {

@@ -1,6 +1,6 @@
 import { router, promptAction } from '@kit.ArkUI';
 import { DeviceModel, DeviceDao, DeviceStatus } from 'datastore';
-import { AuthManager, TimerManager, Constants } from 'utils';
+import { AuthManager, TimerManager, Constants, DeviceRefreshCoordinator, DeviceRefreshEvent } from 'utils';
 import { AppColors, AppTypography, StatusIndicator, GradientButton, LoadingOverlay } from 'uikit';
 
 interface RouteParams {
@@ -17,18 +17,25 @@ struct DeviceDetailPage {
   @State private isLoading: boolean = true;
   @State private deviceId: string = '';
   @State private hasShownLoadError: boolean = false;
+  private readonly refreshListenerKey: string = 'device_detail_page_refresh';
+  private lastHandledRefreshVersion: number = 0;
 
   aboutToAppear(): void {
     const params = router.getParams() as RouteParams;
     if (params?.deviceId) {
       this.deviceId = params.deviceId;
-      this.loadDevice();
+      this.subscribeToRefreshEvents();
+      const hasPendingRefresh = this.syncPendingDeviceRefresh();
+      if (!hasPendingRefresh) {
+        this.loadDevice();
+      }
       this.startAutoRefresh();
     }
   }
 
   aboutToDisappear(): void {
     TimerManager.getInstance().stopTimer('detail_refresh');
+    DeviceRefreshCoordinator.getInstance().unsubscribe(this.refreshListenerKey);
   }
 
   private async loadDevice(): Promise<void> {
@@ -53,6 +60,36 @@ struct DeviceDetailPage {
 
   private startAutoRefresh(): void {
     TimerManager.getInstance().startTimer('detail_refresh', () => this.loadDevice(), Constants.REFRESH_INTERVAL, false);
+  }
+
+  private subscribeToRefreshEvents(): void {
+    DeviceRefreshCoordinator.getInstance().subscribe(this.refreshListenerKey, (event: DeviceRefreshEvent) => {
+      if (event.deviceId !== this.deviceId) {
+        return;
+      }
+
+      void this.handleDeviceRefreshEvent(event);
+    });
+  }
+
+  private syncPendingDeviceRefresh(): boolean {
+    const latestVersion = DeviceRefreshCoordinator.getInstance().getVersion();
+    if (latestVersion <= this.lastHandledRefreshVersion) {
+      return false;
+    }
+
+    this.lastHandledRefreshVersion = latestVersion;
+    void this.loadDevice();
+    return true;
+  }
+
+  private async handleDeviceRefreshEvent(event: DeviceRefreshEvent): Promise<void> {
+    if (event.version <= this.lastHandledRefreshVersion) {
+      return;
+    }
+
+    this.lastHandledRefreshVersion = event.version;
+    await this.loadDevice();
   }
 
   private navigateToLockControl(): void {

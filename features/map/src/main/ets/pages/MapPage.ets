@@ -2,7 +2,7 @@ import { mapCommon, map, MapComponent } from "@kit.MapKit";
 import { geoLocationManager } from "@kit.LocationKit";
 import { promptAction } from "@kit.ArkUI";
 import { DeviceModel, DeviceDao, DeviceStatus } from "datastore";
-import { TimerManager, Constants } from "utils";
+import { TimerManager, Constants, DeviceRefreshCoordinator, DeviceRefreshEvent } from "utils";
 import { AppColors, AppTypography, LoadingOverlay } from "uikit";
 
 /**
@@ -17,10 +17,16 @@ export struct MapPage {
   @State private mapController: map.MapComponentController | undefined = undefined;
   @State private hasShownLoadError: boolean = false;
   private mapOptions?: mapCommon.MapOptions;
+  private readonly refreshListenerKey: string = "map_page_device_refresh";
+  private lastHandledRefreshVersion: number = 0;
 
   aboutToAppear(): void {
     this.initMapOptions();
-    this.loadDevices();
+    this.subscribeToRefreshEvents();
+    const hasPendingRefresh = this.syncPendingDeviceRefresh();
+    if (!hasPendingRefresh) {
+      this.loadDevices();
+    }
     this.startAutoRefresh();
   }
 
@@ -48,6 +54,13 @@ export struct MapPage {
   private async loadDevices(): Promise<void> {
     try {
       this.devices = await DeviceDao.getInstance().getAllDevices();
+      if (this.selectedDevice) {
+        const updatedSelectedDevice = this.devices.find((device: DeviceModel) => device.id === this.selectedDevice!.id) || null;
+        this.selectedDevice = updatedSelectedDevice;
+        if (!updatedSelectedDevice) {
+          this.showDeviceInfo = false;
+        }
+      }
       if (this.mapController) {
         this.addDeviceMarkers();
       }
@@ -70,6 +83,34 @@ export struct MapPage {
       Constants.REFRESH_INTERVAL,
       false,
     );
+  }
+
+  private subscribeToRefreshEvents(): void {
+    DeviceRefreshCoordinator.getInstance().subscribe(this.refreshListenerKey, (event: DeviceRefreshEvent) => {
+      void this.handleDeviceRefreshEvent(event);
+    });
+  }
+
+  private syncPendingDeviceRefresh(): boolean {
+    const latestVersion = DeviceRefreshCoordinator.getInstance().getVersion();
+    if (latestVersion <= this.lastHandledRefreshVersion) {
+      return false;
+    }
+
+    this.lastHandledRefreshVersion = latestVersion;
+    this.isLoading = true;
+    void this.loadDevices();
+    return true;
+  }
+
+  private async handleDeviceRefreshEvent(event: DeviceRefreshEvent): Promise<void> {
+    if (event.version <= this.lastHandledRefreshVersion) {
+      return;
+    }
+
+    this.lastHandledRefreshVersion = event.version;
+    this.isLoading = true;
+    await this.loadDevices();
   }
 
   private addDeviceMarkers(): void {
