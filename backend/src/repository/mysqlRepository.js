@@ -27,6 +27,16 @@ const REQUIRED_SCHEMA = {
   ]
 };
 
+const OPTIONAL_DETAIL_COLUMNS = [
+  "model",
+  "time",
+  "bad",
+  "rottencount",
+  "greenSkin",
+  "mechanicalDamage",
+  "sprouted"
+];
+
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -114,6 +124,7 @@ async function queryUserFromTable(pool, tableName, username, password) {
 export class MysqlRepository {
   constructor(config, options = {}) {
     this.databaseName = config.mysqlDatabase;
+    this.detailsColumns = null;
     this.pool = options.pool ?? mysql.createPool({
       host: config.mysqlHost,
       port: config.mysqlPort,
@@ -195,6 +206,8 @@ export class MysqlRepository {
     if (problems.length > 0) {
       throw new Error(`platform schema mismatch: ${problems.join("; ")}`);
     }
+
+    this.detailsColumns = columnsByTable.get("details") ?? new Set();
   }
 
   async getAllDevices() {
@@ -241,6 +254,86 @@ export class MysqlRepository {
     }
 
     return this.getDeviceById(deviceId);
+  }
+
+  async createDevice(deviceId, address) {
+    const updatedAt = Date.now();
+    const insertValues = {
+      equipmentId: deviceId,
+      model: deviceId,
+      location: address,
+      latitude: 0,
+      longitude: 0,
+      status: "standby",
+      total: 0,
+      isLocked: 0,
+      lck: "0",
+      lockedBy: "",
+      lockedAt: 0,
+      updatedAt,
+      lastUpdate: updatedAt,
+      time: 0,
+      bad: 0,
+      rottencount: 0,
+      greenSkin: 0,
+      mechanicalDamage: 0,
+      sprouted: 0
+    };
+
+    const columns = this.getInsertableDetailsColumns();
+    const params = [];
+    const valueSql = columns.map((columnName) => {
+      if (columnName === "lastUpdate") {
+        params.push(insertValues[columnName]);
+        return "FROM_UNIXTIME(? / 1000)";
+      }
+
+      params.push(insertValues[columnName]);
+      return "?";
+    });
+
+    try {
+      await this.pool.execute(
+        `INSERT INTO details (${columns.join(", ")})
+         VALUES (${valueSql.join(", ")})`,
+        params
+      );
+    } catch (error) {
+      if (error?.code === "ER_DUP_ENTRY") {
+        const conflictError = new Error("设备编号已存在");
+        conflictError.code = "DEVICE_EXISTS";
+        throw conflictError;
+      }
+
+      throw error;
+    }
+
+    return this.getDeviceById(deviceId);
+  }
+
+  getInsertableDetailsColumns() {
+    const baseColumns = [
+      "equipmentId",
+      "location",
+      "latitude",
+      "longitude",
+      "status",
+      "total",
+      "isLocked",
+      "lck",
+      "lockedBy",
+      "lockedAt",
+      "updatedAt",
+      "lastUpdate"
+    ];
+
+    if (!this.detailsColumns) {
+      return baseColumns;
+    }
+
+    const optionalColumns = OPTIONAL_DETAIL_COLUMNS.filter((columnName) => this.detailsColumns.has(columnName));
+    const availableBaseColumns = baseColumns.filter((columnName) => this.detailsColumns.has(columnName));
+    return ["equipmentId", ...optionalColumns, ...availableBaseColumns.filter((columnName) => columnName !== "equipmentId")];
   }
 
   async close() {

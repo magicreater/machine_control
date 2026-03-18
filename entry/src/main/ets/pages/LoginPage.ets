@@ -1,6 +1,6 @@
 import { router } from '@kit.ArkUI';
 import { UserDao } from 'datastore';
-import { AuthManager, Constants } from 'utils';
+import { AuthManager } from 'utils';
 import { AppColors, AppTypography, GradientButton, LoadingOverlay } from 'uikit';
 
 /**
@@ -17,142 +17,40 @@ struct LoginPage {
 
   build() {
     Stack() {
-      // 背景
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({
-          angle: 180,
-          colors: [
-            [AppColors.BG_PRIMARY, 0],
-            [AppColors.BG_SECONDARY, 0.5],
-            [AppColors.BG_PRIMARY, 1]
-          ]
-        })
+        .backgroundColor(AppColors.BG_PRIMARY)
 
-      // 装饰元素
-      Circle()
-        .width(300)
-        .height(300)
-        .fill(AppColors.PRIMARY)
-        .opacity(0.05)
-        .position({ x: -100, y: -100 })
-
-      Circle()
-        .width(200)
-        .height(200)
-        .fill(AppColors.PRIMARY)
-        .opacity(0.08)
-        .position({ x: 250, y: 600 })
-
-      // 主内容
       Column() {
         Scroll() {
           Column({ space: 24 }) {
-            // Logo
-            Column({ space: 16 }) {
-              Row() {
-                Text('🏭')
-                  .fontSize(64)
-              }
-              .width(120)
-              .height(120)
-              .justifyContent(FlexAlign.Center)
-              .backgroundColor(AppColors.PRIMARY + '20')
-              .borderRadius(60)
-              .border({ width: 2, color: AppColors.PRIMARY + '40' })
-
-              Text('工业机器控制系统')
-                .fontSize(AppTypography.SIZE_HEADLINE)
+            Column({ space: 14 }) {
+              Text('Machine Control')
+                .fontSize(AppTypography.SIZE_DISPLAY)
                 .fontWeight(AppTypography.WEIGHT_BOLD)
                 .fontColor(AppColors.TEXT_PRIMARY)
 
-              Text('Industrial Machine Control System')
-                .fontSize(AppTypography.SIZE_CAPTION)
-                .fontColor(AppColors.TEXT_TERTIARY)
-                .letterSpacing(1)
+              Text('管理员可执行设备新增与锁定操作，普通用户仅查看设备状态。')
+                .fontSize(AppTypography.SIZE_BODY)
+                .fontColor(AppColors.TEXT_SECONDARY)
+                .textAlign(TextAlign.Center)
             }
-            .margin({ top: 60, bottom: 40 })
+            .width('100%')
+            .alignItems(HorizontalAlign.Center)
+            .margin({ top: 56, bottom: 24 })
 
-            // 登录表单
-            Column({ space: 16 }) {
-              // 用户名
-              Column({ space: 8 }) {
-                Text('用户名')
-                  .fontSize(AppTypography.SIZE_CAPTION)
-                  .fontColor(AppColors.TEXT_SECONDARY)
-                  .width('100%')
+            Column({ space: 18 }) {
+              this.inputBlock('用户名', '请输入用户名', this.username, false, (value: string) => {
+                this.username = value;
+                this.errorMessage = '';
+              })
 
-                Row() {
-                  Text('👤')
-                    .fontSize(20)
-                    .margin({ left: 16 })
+              this.inputBlock('密码', '请输入密码', this.password, true, (value: string) => {
+                this.password = value;
+                this.errorMessage = '';
+              })
 
-                  TextInput({ placeholder: '请输入用户名', text: this.username })
-                    .layoutWeight(1)
-                    .height(52)
-                    .backgroundColor('transparent')
-                    .placeholderColor(AppColors.TEXT_TERTIARY)
-                    .fontColor(AppColors.TEXT_PRIMARY)
-                    .fontSize(AppTypography.SIZE_BODY)
-                    .caretColor(AppColors.PRIMARY)
-                    .onChange((value) => {
-                      this.username = value;
-                      this.errorMessage = '';
-                    })
-                }
-                .width('100%')
-                .backgroundColor(AppColors.BG_TERTIARY)
-                .borderRadius(12)
-                .border({
-                  width: 1,
-                  color: this.errorMessage ? AppColors.DANGER : AppColors.BORDER
-                })
-              }
-
-              // 密码
-              Column({ space: 8 }) {
-                Text('密码')
-                  .fontSize(AppTypography.SIZE_CAPTION)
-                  .fontColor(AppColors.TEXT_SECONDARY)
-                  .width('100%')
-
-                Row() {
-                  Text('🔒')
-                    .fontSize(20)
-                    .margin({ left: 16 })
-
-                  TextInput({ placeholder: '请输入密码', text: this.password })
-                    .type(this.showPassword ? InputType.Normal : InputType.Password)
-                    .layoutWeight(1)
-                    .height(52)
-                    .backgroundColor('transparent')
-                    .placeholderColor(AppColors.TEXT_TERTIARY)
-                    .fontColor(AppColors.TEXT_PRIMARY)
-                    .fontSize(AppTypography.SIZE_BODY)
-                    .caretColor(AppColors.PRIMARY)
-                    .onChange((value) => {
-                      this.password = value;
-                      this.errorMessage = '';
-                    })
-
-                  Text(this.showPassword ? '👁️' : '👁️‍🗨️')
-                    .fontSize(20)
-                    .margin({ right: 16 })
-                    .onClick(() => {
-                      this.showPassword = !this.showPassword;
-                    })
-                }
-                .width('100%')
-                .backgroundColor(AppColors.BG_TERTIARY)
-                .borderRadius(12)
-                .border({
-                  width: 1,
-                  color: this.errorMessage ? AppColors.DANGER : AppColors.BORDER
-                })
-              }
-
-              // 错误信息
               if (this.errorMessage) {
                 Text(this.errorMessage)
                   .fontSize(AppTypography.SIZE_CAPTION)
@@ -160,64 +58,26 @@ struct LoginPage {
                   .width('100%')
               }
 
-              // 登录按钮
               GradientButton({
-                text: '登 录',
-                icon: '🚀',
+                text: '登录',
                 gradientColors: AppColors.GRADIENT_PRIMARY,
-                isDisabled: !this.username || !this.password,
+                isDisabled: !this.username.trim() || !this.password.trim(),
                 onButtonClick: () => this.handleLogin()
               })
-                .margin({ top: 16 })
             }
             .width('100%')
             .padding(24)
             .backgroundColor(AppColors.BG_SECONDARY)
-            .borderRadius(20)
+            .borderRadius(24)
             .border({ width: 1, color: AppColors.BORDER })
             .shadow({
-              radius: 24,
+              radius: 20,
               color: AppColors.SHADOW_COLOR,
               offsetX: 0,
-              offsetY: 8
+              offsetY: 10
             })
-
-            // 测试账号提示
-            Column({ space: 8 }) {
-              Text('测试账号')
-                .fontSize(AppTypography.SIZE_CAPTION)
-                .fontColor(AppColors.TEXT_TERTIARY)
-
-              Row({ space: 24 }) {
-                Column() {
-                  Text('管理员')
-                    .fontSize(AppTypography.SIZE_SMALL)
-                    .fontColor(AppColors.PRIMARY)
-                  Text('admin / admin123')
-                    .fontSize(AppTypography.SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_SECONDARY)
-                    .margin({ top: 4 })
-                }
-
-                Divider()
-                  .vertical(true)
-                  .height(30)
-                  .color(AppColors.BORDER)
-
-                Column() {
-                  Text('普通用户')
-                    .fontSize(AppTypography.SIZE_SMALL)
-                    .fontColor(AppColors.WARNING)
-                  Text('operator / operator123')
-                    .fontSize(AppTypography.SIZE_SMALL)
-                    .fontColor(AppColors.TEXT_SECONDARY)
-                    .margin({ top: 4 })
-                }
-              }
-            }
-            .margin({ top: 32 })
           }
-          .padding({ left: 24, right: 24, bottom: 40 })
+          .padding({ left: 20, right: 20, bottom: 36 })
         }
         .scrollable(ScrollDirection.Vertical)
         .width('100%')
@@ -226,14 +86,55 @@ struct LoginPage {
       .width('100%')
       .height('100%')
 
-      LoadingOverlay({ isLoading: this.isLoading, message: '登录中...' })
+      LoadingOverlay({ isLoading: this.isLoading, message: '正在登录' })
     }
     .width('100%')
     .height('100%')
   }
 
+  @Builder
+  private inputBlock(label: string, placeholder: string, value: string, isPassword: boolean, onChange: (value: string) => void) {
+    Column({ space: 8 }) {
+      Text(label)
+        .fontSize(AppTypography.SIZE_CAPTION)
+        .fontColor(AppColors.TEXT_SECONDARY)
+        .width('100%')
+
+      Row() {
+        TextInput({ placeholder: placeholder, text: value })
+          .type(isPassword && !this.showPassword ? InputType.Password : InputType.Normal)
+          .layoutWeight(1)
+          .height(52)
+          .backgroundColor('transparent')
+          .placeholderColor(AppColors.TEXT_TERTIARY)
+          .fontColor(AppColors.TEXT_PRIMARY)
+          .fontSize(AppTypography.SIZE_BODY)
+          .caretColor(AppColors.PRIMARY)
+          .onChange(onChange)
+
+        if (isPassword) {
+          Text(this.showPassword ? '隐藏' : '显示')
+            .fontSize(AppTypography.SIZE_CAPTION)
+            .fontColor(AppColors.TEXT_SECONDARY)
+            .padding({ left: 12, right: 12 })
+            .onClick(() => {
+              this.showPassword = !this.showPassword;
+            })
+        }
+      }
+      .width('100%')
+      .padding({ left: 14, right: 14 })
+      .backgroundColor(AppColors.BG_TERTIARY)
+      .borderRadius(16)
+      .border({
+        width: 1,
+        color: this.errorMessage ? AppColors.DANGER : AppColors.BORDER
+      })
+    }
+  }
+
   private async handleLogin(): Promise<void> {
-    if (!this.username || !this.password) {
+    if (!this.username.trim() || !this.password.trim()) {
       this.errorMessage = '请输入用户名和密码';
       return;
     }
@@ -242,8 +143,7 @@ struct LoginPage {
     this.errorMessage = '';
 
     try {
-      const userDao = UserDao.getInstance();
-      const user = await userDao.validateUser(this.username, this.password);
+      const user = await UserDao.getInstance().validateUser(this.username.trim(), this.password.trim());
 
       if (user) {
         AuthManager.getInstance().setCurrentUser(user);
@@ -252,7 +152,7 @@ struct LoginPage {
         this.errorMessage = '用户名或密码错误';
       }
     } catch (error) {
-      this.errorMessage = '登录失败，请重试';
+      this.errorMessage = error instanceof Error ? error.message : '登录失败，请重试';
       console.error('Login error:', error);
     } finally {
       this.isLoading = false;

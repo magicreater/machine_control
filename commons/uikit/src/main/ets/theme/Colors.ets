@@ -1,47 +1,47 @@
 /**
- * 应用颜色主题 - 深色科技风
+ * 应用颜色主题 - 简洁浅色工业风
  */
 export class AppColors {
   // 背景色系
-  static readonly BG_PRIMARY: string = '#0D1117';       // 主背景
-  static readonly BG_SECONDARY: string = '#161B22';     // 卡片背景
-  static readonly BG_TERTIARY: string = '#21262D';      // 次级背景
-  static readonly BG_ELEVATED: string = '#30363D';      // 提升背景
+  static readonly BG_PRIMARY: string = '#F4F7FB';
+  static readonly BG_SECONDARY: string = '#FFFFFF';
+  static readonly BG_TERTIARY: string = '#EEF2F7';
+  static readonly BG_ELEVATED: string = '#DCE5F0';
 
   // 主题色
-  static readonly PRIMARY: string = '#00D4FF';          // 科技蓝
-  static readonly PRIMARY_LIGHT: string = '#58E1FF';    // 浅科技蓝
-  static readonly PRIMARY_DARK: string = '#00A8CC';     // 深科技蓝
+  static readonly PRIMARY: string = '#2563EB';
+  static readonly PRIMARY_LIGHT: string = '#5B8DEF';
+  static readonly PRIMARY_DARK: string = '#1D4ED8';
 
   // 语义色
-  static readonly SUCCESS: string = '#3FB950';          // 运行中/成功
-  static readonly SUCCESS_LIGHT: string = '#56D364';    // 浅成功
-  static readonly WARNING: string = '#F0883E';          // 待机/警告
-  static readonly WARNING_LIGHT: string = '#FFAB55';    // 浅警告
-  static readonly DANGER: string = '#F85149';           // 锁定/离线/错误
-  static readonly DANGER_LIGHT: string = '#FF6B6B';     // 浅危险
+  static readonly SUCCESS: string = '#1F9D66';
+  static readonly SUCCESS_LIGHT: string = '#39B980';
+  static readonly WARNING: string = '#D97706';
+  static readonly WARNING_LIGHT: string = '#F59E0B';
+  static readonly DANGER: string = '#DC2626';
+  static readonly DANGER_LIGHT: string = '#EF4444';
 
   // 文字色
-  static readonly TEXT_PRIMARY: string = '#E6EDF3';     // 主文字
-  static readonly TEXT_SECONDARY: string = '#8B949E';   // 次文字
-  static readonly TEXT_TERTIARY: string = '#6E7681';    // 三级文字
-  static readonly TEXT_ON_PRIMARY: string = '#FFFFFF';  // 主色上的文字
+  static readonly TEXT_PRIMARY: string = '#172033';
+  static readonly TEXT_SECONDARY: string = '#52607A';
+  static readonly TEXT_TERTIARY: string = '#7F8CA3';
+  static readonly TEXT_ON_PRIMARY: string = '#FFFFFF';
 
   // 边框色
-  static readonly BORDER: string = '#30363D';           // 边框
-  static readonly BORDER_LIGHT: string = '#3D444D';     // 浅边框
+  static readonly BORDER: string = '#D8E0EA';
+  static readonly BORDER_LIGHT: string = '#E8EEF5';
 
   // 渐变色
-  static readonly GRADIENT_PRIMARY: [string, string] = ['#00D4FF', '#0066FF'];  // 主渐变
-  static readonly GRADIENT_SUCCESS: [string, string] = ['#3FB950', '#2EA043'];  // 成功渐变
-  static readonly GRADIENT_DANGER: [string, string] = ['#F85149', '#DA3633'];   // 危险渐变
+  static readonly GRADIENT_PRIMARY: [string, string] = ['#2563EB', '#1D4ED8'];
+  static readonly GRADIENT_SUCCESS: [string, string] = ['#1F9D66', '#157347'];
+  static readonly GRADIENT_DANGER: [string, string] = ['#DC2626', '#B91C1C'];
 
   // 状态栏透明度
-  static readonly OVERLAY_LIGHT: string = 'rgba(255,255,255,0.05)';
-  static readonly OVERLAY_DARK: string = 'rgba(0,0,0,0.3)';
+  static readonly OVERLAY_LIGHT: string = 'rgba(37,99,235,0.08)';
+  static readonly OVERLAY_DARK: string = 'rgba(15,23,42,0.24)';
 
   // 阴影
-  static readonly SHADOW_COLOR: string = 'rgba(0,0,0,0.3)';
+  static readonly SHADOW_COLOR: string = 'rgba(15,23,42,0.12)';
 
   /**
    * 获取状态对应的颜色

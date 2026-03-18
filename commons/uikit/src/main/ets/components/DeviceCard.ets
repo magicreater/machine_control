@@ -16,10 +16,9 @@ export struct DeviceCard {
   onCardClick?: () => void;
 
   build() {
-    Column() {
-      // 顶部：设备名称和状态
+    Column({ space: 14 }) {
       Row() {
-        Row({ space: 8 }) {
+        Row({ space: 10 }) {
           StatusIndicator({ status: this.status, isLocked: this.isLocked, indicatorSize: 12 })
 
           Column() {
@@ -39,30 +38,19 @@ export struct DeviceCard {
         // 锁定标识
         if (this.isLocked) {
           Row() {
-            Text('🔒')
-              .fontSize(14)
             Text('已锁定')
               .fontSize(AppTypography.SIZE_SMALL)
               .fontColor(AppColors.DANGER)
-              .margin({ left: 4 })
           }
-          .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-          .backgroundColor(AppColors.OVERLAY_LIGHT)
-          .borderRadius(12)
+          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+          .backgroundColor(AppColors.DANGER + '12')
+          .borderRadius(999)
         }
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
 
-      // 分隔线
-      Divider()
-        .color(AppColors.BORDER)
-        .margin({ top: 12, bottom: 12 })
-
-      // 地址信息
       Row() {
-        Text('📍')
-          .fontSize(14)
         Text(this.address)
           .fontSize(AppTypography.SIZE_CAPTION)
           .fontColor(AppColors.TEXT_SECONDARY)
@@ -73,10 +61,9 @@ export struct DeviceCard {
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
+      .padding({ top: 2 })
 
-      // 底部统计
       Row() {
-        // 工作数量
         Column() {
           Text('工作数量')
             .fontSize(AppTypography.SIZE_SMALL)
@@ -102,18 +89,17 @@ export struct DeviceCard {
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Bottom)
-      .margin({ top: 12 })
     }
     .width('100%')
-    .padding(16)
+    .padding(18)
     .backgroundColor(AppColors.BG_SECONDARY)
-    .borderRadius(16)
+    .borderRadius(20)
     .border({ width: 1, color: AppColors.BORDER })
     .shadow({
-      radius: 16,
+      radius: 18,
       color: AppColors.SHADOW_COLOR,
       offsetX: 0,
-      offsetY: 4
+      offsetY: 6
     })
     .onClick(() => {
       if (this.onCardClick) {

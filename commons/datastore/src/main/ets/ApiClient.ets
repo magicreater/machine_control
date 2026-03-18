@@ -8,6 +8,7 @@ interface ApiErrorBody {
 
 interface ApiHeaders {
   'Content-Type': string;
+  Authorization?: string;
 }
 
 interface ApiRequestOptions {
@@ -22,6 +23,7 @@ interface ApiRequestOptions {
 export class ApiClient {
   private static instance: ApiClient | null = null;
   private readonly baseUrl: string = buildApiBaseUrl(ApiConfig.DEFAULT_HOST, ApiConfig.DEFAULT_PORT);
+  private authToken: string = '';
 
   private constructor() { }
 
@@ -44,11 +46,22 @@ export class ApiClient {
     return this.request<T>(path, http.RequestMethod.PUT, payload);
   }
 
+  setAuthToken(token: string): void {
+    this.authToken = token;
+  }
+
+  clearAuthToken(): void {
+    this.authToken = '';
+  }
+
   private async request<T>(path: string, method: http.RequestMethod, payload?: Object): Promise<T> {
     const request = http.createHttp();
     const headers: ApiHeaders = {
       'Content-Type': 'application/json'
     };
+    if (this.authToken && method !== http.RequestMethod.GET && path !== '/auth/login') {
+      headers.Authorization = `Bearer ${this.authToken}`;
+    }
     const options: ApiRequestOptions = {
       method: method,
       connectTimeout: ApiConfig.CONNECT_TIMEOUT_MS,

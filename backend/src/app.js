@@ -1,4 +1,5 @@
 import express from "express";
+import { InMemorySessionStore } from "./sessionStore.js";
 
 function normalizeBoolean(value) {
   if (typeof value === "boolean") {
@@ -13,13 +14,50 @@ function normalizeBoolean(value) {
   return null;
 }
 
-export function createApp({ repository }) {
+function readBearerToken(headerValue) {
+  if (typeof headerValue !== "string") {
+    return "";
+  }
+
+  const match = headerValue.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+export function createApp({ repository, sessionStore = new InMemorySessionStore() }) {
   if (!repository) {
     throw new Error("repository is required");
   }
 
   const app = express();
   app.use(express.json());
+
+  app.use((req, _res, next) => {
+    const token = readBearerToken(req.headers.authorization);
+    req.auth = token ? sessionStore.getSession(token) : null;
+    next();
+  });
+
+  const requireAuth = (req, res) => {
+    if (!req.auth) {
+      res.status(401).json({ message: "请先登录" });
+      return false;
+    }
+
+    return true;
+  };
+
+  const requireAdmin = (req, res) => {
+    if (!requireAuth(req, res)) {
+      return false;
+    }
+
+    if (req.auth.role !== "admin") {
+      res.status(403).json({ message: "仅管理员可执行此操作" });
+      return false;
+    }
+
+    return true;
+  };
 
   app.post("/api/auth/login", async (req, res, next) => {
     try {
@@ -33,7 +71,11 @@ export function createApp({ repository }) {
         return res.status(401).json({ message: "用户名或密码错误" });
       }
 
-      return res.json(user);
+      const session = sessionStore.createSession(user);
+      return res.json({
+        ...user,
+        token: session.token
+      });
     } catch (error) {
       return next(error);
     }
@@ -61,16 +103,45 @@ export function createApp({ repository }) {
     }
   });
 
+  app.post("/api/devices", async (req, res, next) => {
+    try {
+      if (!requireAdmin(req, res)) {
+        return;
+      }
+
+      const { id, address } = req.body ?? {};
+      const deviceId = typeof id === "string" ? id.trim() : "";
+      const deviceAddress = typeof address === "string" ? address.trim() : "";
+
+      if (!deviceId || !deviceAddress) {
+        return res.status(400).json({ message: "设备编号和位置不能为空" });
+      }
+
+      const device = await repository.createDevice(deviceId, deviceAddress);
+      return res.status(201).json(device);
+    } catch (error) {
+      if (error?.code === "DEVICE_EXISTS") {
+        return res.status(409).json({ message: "设备编号已存在" });
+      }
+      return next(error);
+    }
+  });
+
   const lockHandler = async (req, res, next) => {
     try {
+      if (!requireAdmin(req, res)) {
+        return;
+      }
+
       const { isLocked, operator } = req.body ?? {};
       const normalizedLockState = normalizeBoolean(isLocked);
+      const effectiveOperator = req.auth?.username ?? operator;
 
-      if (normalizedLockState === null || !operator) {
+      if (normalizedLockState === null || !effectiveOperator) {
         return res.status(400).json({ message: "请求参数无效" });
       }
 
-      const device = await repository.updateLockStatus(req.params.id, normalizedLockState, operator);
+      const device = await repository.updateLockStatus(req.params.id, normalizedLockState, effectiveOperator);
       if (!device) {
         return res.status(404).json({ message: "设备不存在" });
       }

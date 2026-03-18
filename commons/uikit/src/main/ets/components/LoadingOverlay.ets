@@ -31,7 +31,8 @@ export struct LoadingOverlay {
         }
         .padding(24)
         .backgroundColor(AppColors.BG_SECONDARY)
-        .borderRadius(16)
+        .borderRadius(20)
+        .border({ width: 1, color: AppColors.BORDER })
         .shadow({
           radius: 20,
           color: AppColors.SHADOW_COLOR,

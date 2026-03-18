@@ -5,6 +5,7 @@ export interface UserDto {
   id: string;
   username: string;
   role: string;
+  token?: string;
 }
 
 export interface DeviceDto {
@@ -29,7 +30,8 @@ export function mapUserDtoToModel(dto: UserDto): UserModel {
   return new UserModel({
     id: dto.id,
     username: dto.username,
-    role: dto.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.USER
+    role: dto.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.USER,
+    sessionToken: dto.token ?? ''
   });
 }
 

@@ -32,8 +32,11 @@ export class UserDao {
         };
         try {
             const dto = await ApiClient.getInstance().post<UserDto>('/auth/login', payload);
-            return mapUserDtoToModel(dto);
+            const user = mapUserDtoToModel(dto);
+            ApiClient.getInstance().setAuthToken(user.sessionToken);
+            return user;
         } catch (error) {
+            ApiClient.getInstance().clearAuthToken();
             if (error instanceof Error && error.message === '用户名或密码错误') {
                 return null;
             }
@@ -70,5 +73,9 @@ export class UserDao {
      */
     async getAllUsers(): Promise<UserModel[]> {
         return [];
+    }
+
+    clearSession(): void {
+        ApiClient.getInstance().clearAuthToken();
     }
 }

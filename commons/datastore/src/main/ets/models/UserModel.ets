@@ -70,6 +70,7 @@ export interface UserModelOptions {
   passwordHash?: string;
   role?: UserRole;
   createdAt?: number;
+  sessionToken?: string;
 }
 
 /**
@@ -152,6 +153,12 @@ export class UserModel {
   createdAt: number = 0;
 
   /**
+   * 当前登录会话令牌
+   * @description 由服务端签发，用于敏感写操作鉴权
+   */
+  sessionToken: string = '';
+
+  /**
    * 构造函数
    * @description 创建 UserModel 实例，支持部分初始化
    *
@@ -188,6 +195,7 @@ export class UserModel {
       if (init.passwordHash !== undefined) this.passwordHash = init.passwordHash;
       if (init.role !== undefined) this.role = init.role;
       if (init.createdAt !== undefined) this.createdAt = init.createdAt;
+      if (init.sessionToken !== undefined) this.sessionToken = init.sessionToken;
     }
   }
 

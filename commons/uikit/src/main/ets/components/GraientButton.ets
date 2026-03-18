@@ -26,7 +26,7 @@ export struct GradientButton {
     .width("100%")
     .height(52)
     .justifyContent(FlexAlign.Center)
-    .borderRadius(12)
+    .borderRadius(16)
     .linearGradient({
       angle: 90,
       colors: this.isDisabled
@@ -45,7 +45,7 @@ export struct GradientButton {
       radius: this.isPressed ? 4 : 12,
       color: this.isDisabled ? "transparent" : this.gradientColors[0] + "40",
       offsetX: 0,
-      offsetY: this.isPressed ? 2 : 4,
+      offsetY: this.isPressed ? 2 : 6,
     })
     .animation({
       duration: 150,

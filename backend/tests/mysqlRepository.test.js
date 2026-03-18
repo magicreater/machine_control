@@ -185,6 +185,58 @@ test("updateLockStatus writes both new and legacy lock fields", async () => {
   assert.match(pool.calls[0].sql, /lastUpdate = FROM_UNIXTIME/i);
 });
 
+test("createDevice inserts default values for a new details row", async () => {
+  const { repository, pool } = createRepositoryWithResponses([
+    [{ affectedRows: 1 }],
+    [[
+      {
+        equipmentId: "DEV006",
+        location: "山东省新增地址",
+        latitude: 0,
+        longitude: 0,
+        status: "standby",
+        total: 0,
+        isLocked: 0,
+        lck: "0",
+        lockedBy: "",
+        lockedAt: 0,
+        updatedAt: 1700000000000
+      }
+    ]]
+  ]);
+
+  const device = await repository.createDevice("DEV006", "山东省新增地址");
+
+  assert.equal(device?.id, "DEV006");
+  assert.equal(device?.name, "DEV006");
+  assert.equal(device?.status, 2);
+  assert.equal(device?.workCount, 0);
+  assert.match(pool.calls[0].sql, /INSERT INTO details/i);
+  assert.deepEqual(pool.calls[0].params.slice(0, 10), [
+    "DEV006",
+    "山东省新增地址",
+    0,
+    0,
+    "standby",
+    0,
+    0,
+    "0",
+    "",
+    0
+  ]);
+});
+
+test("createDevice surfaces duplicate device ids as DEVICE_EXISTS", async () => {
+  const duplicate = new Error("Duplicate entry");
+  duplicate.code = "ER_DUP_ENTRY";
+  const { repository } = createRepositoryWithResponses([duplicate]);
+
+  await assert.rejects(
+    repository.createDevice("DEV001", "山东省重复地址"),
+    (error) => error.code === "DEVICE_EXISTS" && /设备编号已存在/i.test(error.message)
+  );
+});
+
 test("verifySchema throws a readable error when details columns are missing", async () => {
   const { repository } = createRepositoryWithResponses([
     [[

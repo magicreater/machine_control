@@ -12,31 +12,43 @@ export struct StatCard {
   @Prop accentColor: string = AppColors.PRIMARY;
 
   build() {
-    Column({ space: 8 }) {
+    Column({ space: 12 }) {
       Row() {
-        Text(this.icon)
-          .fontSize(24)
-
         Text(this.title)
           .fontSize(AppTypography.SIZE_CAPTION)
           .fontColor(AppColors.TEXT_SECONDARY)
-          .margin({ left: 8 })
+
+        if (this.icon) {
+          Text(this.icon)
+            .fontSize(AppTypography.SIZE_SMALL)
+            .fontColor(this.accentColor)
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .backgroundColor(this.accentColor + '12')
+            .borderRadius(999)
+        }
       }
       .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
 
       Text(this.value)
         .fontSize(AppTypography.SIZE_HEADLINE)
         .fontWeight(AppTypography.WEIGHT_BOLD)
-        .fontColor(this.accentColor)
+        .fontColor(AppColors.TEXT_PRIMARY)
         .width('100%')
     }
     .width('100%')
     .padding(16)
     .backgroundColor(AppColors.BG_SECONDARY)
-    .borderRadius(12)
+    .borderRadius(18)
     .border({
       width: 1,
-      color: this.accentColor + '30'
+      color: AppColors.BORDER
+    })
+    .shadow({
+      radius: 10,
+      color: AppColors.SHADOW_COLOR,
+      offsetX: 0,
+      offsetY: 4
     })
   }
 }

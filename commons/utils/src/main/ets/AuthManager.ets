@@ -6,6 +6,7 @@ import { UserModel, UserRole } from 'datastore';
 export class AuthManager {
   private static instance: AuthManager | null = null;
   private currentUser: UserModel | null = null;
+  private currentToken: string = '';
   private isLoggedIn: boolean = false;
 
   private constructor() { }
@@ -22,6 +23,7 @@ export class AuthManager {
    */
   setCurrentUser(user: UserModel): void {
     this.currentUser = user;
+    this.currentToken = user.sessionToken;
     this.isLoggedIn = true;
   }
 
@@ -60,11 +62,16 @@ export class AuthManager {
     return this.currentUser?.role || UserRole.USER;
   }
 
+  getCurrentToken(): string {
+    return this.currentToken;
+  }
+
   /**
    * 登出
    */
   logout(): void {
     this.currentUser = null;
+    this.currentToken = '';
     this.isLoggedIn = false;
   }
 }

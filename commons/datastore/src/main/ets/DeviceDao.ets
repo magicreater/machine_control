@@ -11,6 +11,11 @@ interface LockStatusPayload {
     operator: string;
 }
 
+interface CreateDevicePayload {
+    id: string;
+    address: string;
+}
+
 /**
  * 设备数据访问对象
  */
@@ -92,6 +97,26 @@ export class DeviceDao {
     async updateWorkCount(deviceId: string, workCount: number): Promise<boolean> {
         hilog.warn(DOMAIN, TAG, `updateWorkCount is not supported by the HTTP API. deviceId=${deviceId}, workCount=${workCount}`);
         return false;
+    }
+
+    /**
+     * 新建设备
+     */
+    async createDevice(id: string, address: string): Promise<DeviceModel> {
+        const payload: CreateDevicePayload = {
+            id: id.trim(),
+            address: address.trim()
+        };
+        try {
+            const response = await ApiClient.getInstance().post<DeviceDto>('/devices', payload);
+            return mapDeviceDtoToModel(response);
+        } catch (error) {
+            hilog.error(DOMAIN, TAG, `createDevice failed: ${error}`);
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            }
+            throw new Error('新增设备失败，请稍后重试');
+        }
     }
 
     /**

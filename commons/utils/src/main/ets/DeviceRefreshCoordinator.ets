@@ -1,6 +1,6 @@
 export interface DeviceRefreshEvent {
   deviceId: string;
-  kind: 'lock-status-changed';
+  kind: 'lock-status-changed' | 'device-created';
   version: number;
   changedAt: number;
 }
@@ -22,10 +22,18 @@ export class DeviceRefreshCoordinator {
   }
 
   publishLockStatusChanged(deviceId: string): DeviceRefreshEvent {
+    return this.publish(deviceId, 'lock-status-changed');
+  }
+
+  publishDeviceCreated(deviceId: string): DeviceRefreshEvent {
+    return this.publish(deviceId, 'device-created');
+  }
+
+  private publish(deviceId: string, kind: 'lock-status-changed' | 'device-created'): DeviceRefreshEvent {
     this.version += 1;
     const event: DeviceRefreshEvent = {
       deviceId: deviceId,
-      kind: 'lock-status-changed',
+      kind: kind,
       version: this.version,
       changedAt: Date.now()
     };
