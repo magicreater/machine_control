@@ -12,11 +12,12 @@ function readRequiredEnv(name, fallback = "") {
 
 export function getConfig() {
   return {
+    apiHost: process.env.API_HOST ?? "0.0.0.0",
     apiPort: Number(process.env.API_PORT ?? 3000),
     mysqlHost: readRequiredEnv("MYSQL_HOST", "127.0.0.1"),
     mysqlPort: Number(process.env.MYSQL_PORT ?? 3306),
-    mysqlDatabase: readRequiredEnv("MYSQL_DATABASE", "machine_control"),
-    mysqlUser: readRequiredEnv("MYSQL_USER", "machine_control_app"),
+    mysqlDatabase: readRequiredEnv("MYSQL_DATABASE", "platform"),
+    mysqlUser: readRequiredEnv("MYSQL_USER", "platform"),
     mysqlPassword: readRequiredEnv("MYSQL_PASSWORD", "change_me")
   };
 }

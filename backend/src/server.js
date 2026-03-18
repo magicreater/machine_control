@@ -1,13 +1,9 @@
-import { createApp } from "./app.js";
-import { getConfig } from "./config.js";
-import { MysqlRepository } from "./repository/mysqlRepository.js";
+import { initializeRuntime } from "./bootstrap.js";
 
-const config = getConfig();
-const repository = new MysqlRepository(config);
-const app = createApp({ repository });
+const { app, config, repository } = await initializeRuntime();
 
-const server = app.listen(config.apiPort, () => {
-  console.log(`Machine Control backend listening on port ${config.apiPort}`);
+const server = app.listen(config.apiPort, config.apiHost, () => {
+  console.log(`Machine Control backend listening on ${config.apiHost}:${config.apiPort}`);
 });
 
 async function shutdown() {

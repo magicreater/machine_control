@@ -1,0 +1,14 @@
+[Unit]
+Description=Machine Control Reverse Proxy
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/aa_nginx -g 'daemon off;' -c /etc/aa_nginx/aa_nginx.conf
+ExecReload=/usr/sbin/aa_nginx -s reload
+ExecStop=/usr/sbin/aa_nginx -s quit
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

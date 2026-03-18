@@ -1,0 +1,18 @@
+[Unit]
+Description=Machine Control Backend
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/machine-control/backend
+EnvironmentFile=/opt/machine-control/backend/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=5
+User=platform
+Group=platform
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
