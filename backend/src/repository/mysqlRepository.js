@@ -8,23 +8,25 @@ const STATUS_TO_DEVICE_STATUS = new Map([
   ["stop", 0]
 ]);
 
+const DETAIL_BASE_COLUMNS = [
+  "equipmentId",
+  "location",
+  "latitude",
+  "longitude",
+  "status",
+  "total",
+  "isLocked",
+  "lck",
+  "lockedBy",
+  "lockedAt",
+  "updatedAt",
+  "lastUpdate"
+];
+
 const REQUIRED_SCHEMA = {
   admin: ["id", "username", "password"],
   user: ["id", "username", "password"],
-  details: [
-    "equipmentId",
-    "location",
-    "latitude",
-    "longitude",
-    "status",
-    "total",
-    "isLocked",
-    "lck",
-    "lockedBy",
-    "lockedAt",
-    "updatedAt",
-    "lastUpdate"
-  ]
+  details: DETAIL_BASE_COLUMNS
 };
 
 const OPTIONAL_DETAIL_COLUMNS = [
@@ -81,6 +83,17 @@ function parseLockState(isLocked, legacyLockValue) {
   return ["1", "true", "locked", "yes", "y"].includes(normalizedLegacy);
 }
 
+function buildUserId(role) {
+  const prefix = role === "admin" ? "ADM" : "USR";
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const suffix = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+  return `${prefix}${timestamp}${suffix}`;
+}
+
+function getStoredRoleValue(role) {
+  return role === "admin" ? "ADMIN" : "USER";
+}
+
 export function normalizeRole(role, source = "user") {
   if (source === "admin") {
     return "admin";
@@ -102,6 +115,11 @@ export function mapDetailRow(row) {
     longitude: toNumber(row.longitude),
     status: mapDetailStatus(row.status),
     workCount: toNumber(row.total),
+    badCount: toNumber(row.bad),
+    rottenCount: toNumber(row.rottencount),
+    greenSkinCount: toNumber(row.greenSkin),
+    mechanicalDamageCount: toNumber(row.mechanicalDamage),
+    sproutedCount: toNumber(row.sprouted),
     isLocked: parseLockState(row.isLocked, row.lck),
     lockedBy: row.lockedBy ?? "",
     lockedAt: parseTimestamp(row.lockedAt),
@@ -109,13 +127,18 @@ export function mapDetailRow(row) {
   };
 }
 
-async function queryUserFromTable(pool, tableName, username, password) {
+async function queryUserFromTable(pool, tableName, username, password, tableColumns = null) {
+  const defaultRole = tableName === "admin" ? "admin" : "user";
+  const hasRoleColumn = tableColumns?.has("role") ?? false;
+  const roleSelect = hasRoleColumn ? "role" : "? AS role";
+  const params = hasRoleColumn ? [username, password] : [defaultRole, username, password];
+
   const [rows] = await pool.execute(
-    `SELECT id, username, role
+    `SELECT id, username, ${roleSelect}
      FROM \`${tableName}\`
      WHERE username = ? AND password = ?
      LIMIT 1`,
-    [username, password]
+    params
   );
 
   return rows[0] ?? null;
@@ -125,6 +148,7 @@ export class MysqlRepository {
   constructor(config, options = {}) {
     this.databaseName = config.mysqlDatabase;
     this.detailsColumns = null;
+    this.userTableColumns = new Map();
     this.pool = options.pool ?? mysql.createPool({
       host: config.mysqlHost,
       port: config.mysqlPort,
@@ -138,7 +162,13 @@ export class MysqlRepository {
   }
 
   async validateUser(username, password) {
-    const admin = await queryUserFromTable(this.pool, "admin", username, password);
+    const admin = await queryUserFromTable(
+      this.pool,
+      "admin",
+      username,
+      password,
+      this.userTableColumns.get("admin") ?? null
+    );
     if (admin) {
       return {
         id: String(admin.id),
@@ -147,7 +177,13 @@ export class MysqlRepository {
       };
     }
 
-    const user = await queryUserFromTable(this.pool, "user", username, password);
+    const user = await queryUserFromTable(
+      this.pool,
+      "user",
+      username,
+      password,
+      this.userTableColumns.get("user") ?? null
+    );
     return user
       ? {
           id: String(user.id),
@@ -207,12 +243,16 @@ export class MysqlRepository {
       throw new Error(`platform schema mismatch: ${problems.join("; ")}`);
     }
 
+    this.userTableColumns = new Map([
+      ["admin", columnsByTable.get("admin") ?? new Set()],
+      ["user", columnsByTable.get("user") ?? new Set()]
+    ]);
     this.detailsColumns = columnsByTable.get("details") ?? new Set();
   }
 
   async getAllDevices() {
     const [rows] = await this.pool.execute(
-      `SELECT equipmentId, location, latitude, longitude, status, total, isLocked, lck, lockedBy, lockedAt, updatedAt, lastUpdate
+      `SELECT ${this.getSelectableDetailsColumns().join(", ")}
        FROM details
        ORDER BY equipmentId ASC`
     );
@@ -221,7 +261,7 @@ export class MysqlRepository {
 
   async getDeviceById(deviceId) {
     const [rows] = await this.pool.execute(
-      `SELECT equipmentId, location, latitude, longitude, status, total, isLocked, lck, lockedBy, lockedAt, updatedAt, lastUpdate
+      `SELECT ${this.getSelectableDetailsColumns().join(", ")}
        FROM details
        WHERE equipmentId = ?
        LIMIT 1`,
@@ -311,29 +351,108 @@ export class MysqlRepository {
     return this.getDeviceById(deviceId);
   }
 
-  getInsertableDetailsColumns() {
-    const baseColumns = [
-      "equipmentId",
-      "location",
-      "latitude",
-      "longitude",
-      "status",
-      "total",
-      "isLocked",
-      "lck",
-      "lockedBy",
-      "lockedAt",
-      "updatedAt",
-      "lastUpdate"
-    ];
+  async createUser(username, password, role) {
+    const normalizedRole = role === "admin" ? "admin" : role === "user" ? "user" : "";
+    if (!normalizedRole) {
+      const invalidRoleError = new Error("用户角色无效");
+      invalidRoleError.code = "INVALID_ROLE";
+      throw invalidRoleError;
+    }
 
+    await this.ensureSchemaMetadata();
+
+    if (await this.usernameExists(username)) {
+      const conflictError = new Error("用户名已存在");
+      conflictError.code = "USER_EXISTS";
+      throw conflictError;
+    }
+
+    const tableName = normalizedRole === "admin" ? "admin" : "user";
+    const tableColumns = this.userTableColumns.get(tableName) ?? new Set();
+    const id = buildUserId(normalizedRole);
+    const createdAt = Date.now();
+    const values = [];
+
+    if (tableColumns.has("id")) values.push(["id", id]);
+    if (tableColumns.has("username")) values.push(["username", username]);
+    if (tableColumns.has("password")) values.push(["password", password]);
+    if (tableColumns.has("role")) values.push(["role", getStoredRoleValue(normalizedRole)]);
+    if (tableColumns.has("name")) values.push(["name", username]);
+    if (tableColumns.has("phone")) values.push(["phone", null]);
+    if (tableColumns.has("email")) values.push(["email", null]);
+    if (tableColumns.has("avatar")) values.push(["avatar", null]);
+    if (tableColumns.has("created_at")) values.push(["created_at", createdAt]);
+    if (tableColumns.has("createdAt")) values.push(["createdAt", createdAt]);
+
+    const columns = values.map(([columnName]) => `\`${columnName}\``);
+    const params = values.map(([, value]) => value);
+
+    try {
+      await this.pool.execute(
+        `INSERT INTO \`${tableName}\` (${columns.join(", ")})
+         VALUES (${columns.map(() => "?").join(", ")})`,
+        params
+      );
+    } catch (error) {
+      if (error?.code === "ER_DUP_ENTRY") {
+        const conflictError = new Error("用户名已存在");
+        conflictError.code = "USER_EXISTS";
+        throw conflictError;
+      }
+
+      throw error;
+    }
+
+    return {
+      id,
+      username,
+      role: normalizedRole
+    };
+  }
+
+  getSelectableDetailsColumns() {
     if (!this.detailsColumns) {
-      return baseColumns;
+      return DETAIL_BASE_COLUMNS;
     }
 
     const optionalColumns = OPTIONAL_DETAIL_COLUMNS.filter((columnName) => this.detailsColumns.has(columnName));
-    const availableBaseColumns = baseColumns.filter((columnName) => this.detailsColumns.has(columnName));
+    return [...DETAIL_BASE_COLUMNS, ...optionalColumns];
+  }
+
+  getInsertableDetailsColumns() {
+    if (!this.detailsColumns) {
+      return DETAIL_BASE_COLUMNS;
+    }
+
+    const optionalColumns = OPTIONAL_DETAIL_COLUMNS.filter((columnName) => this.detailsColumns.has(columnName));
+    const availableBaseColumns = DETAIL_BASE_COLUMNS.filter((columnName) => this.detailsColumns.has(columnName));
     return ["equipmentId", ...optionalColumns, ...availableBaseColumns.filter((columnName) => columnName !== "equipmentId")];
+  }
+
+  async ensureSchemaMetadata() {
+    if (this.detailsColumns && this.userTableColumns.get("admin") && this.userTableColumns.get("user")) {
+      return;
+    }
+
+    await this.verifySchema();
+  }
+
+  async usernameExists(username) {
+    for (const tableName of ["admin", "user"]) {
+      const [rows] = await this.pool.execute(
+        `SELECT 1
+         FROM \`${tableName}\`
+         WHERE username = ?
+         LIMIT 1`,
+        [username]
+      );
+
+      if (rows[0]) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async close() {

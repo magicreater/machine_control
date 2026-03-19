@@ -16,6 +16,11 @@ export interface DeviceDto {
   longitude: number;
   status: number;
   workCount: number;
+  badCount: number;
+  rottenCount: number;
+  greenSkinCount: number;
+  mechanicalDamageCount: number;
+  sproutedCount: number;
   isLocked: boolean;
   lockedBy: string;
   lockedAt: number;
@@ -44,6 +49,11 @@ export function mapDeviceDtoToModel(dto: DeviceDto): DeviceModel {
     longitude: dto.longitude,
     status: dto.status as DeviceStatus,
     workCount: dto.workCount,
+    badCount: dto.badCount,
+    rottenCount: dto.rottenCount,
+    greenSkinCount: dto.greenSkinCount,
+    mechanicalDamageCount: dto.mechanicalDamageCount,
+    sproutedCount: dto.sproutedCount,
     isLocked: dto.isLocked,
     lockedBy: dto.lockedBy,
     lockedAt: dto.lockedAt,

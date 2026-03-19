@@ -54,6 +54,11 @@ export interface DeviceModelOptions {
   longitude?: number;
   status?: DeviceStatus;
   workCount?: number;
+  badCount?: number;
+  rottenCount?: number;
+  greenSkinCount?: number;
+  mechanicalDamageCount?: number;
+  sproutedCount?: number;
   isLocked?: boolean;
   lockedBy?: string;
   lockedAt?: number;
@@ -141,6 +146,31 @@ export class DeviceModel {
   workCount: number = 0;
 
   /**
+   * 坏果数量
+   */
+  badCount: number = 0;
+
+  /**
+   * 腐烂数量
+   */
+  rottenCount: number = 0;
+
+  /**
+   * 青皮数量
+   */
+  greenSkinCount: number = 0;
+
+  /**
+   * 机械损伤数量
+   */
+  mechanicalDamageCount: number = 0;
+
+  /**
+   * 发芽数量
+   */
+  sproutedCount: number = 0;
+
+  /**
    * 锁定状态标志
    * @description 表示设备是否被管理员锁定
    * - true: 设备已锁定，禁止操作
@@ -214,6 +244,11 @@ export class DeviceModel {
       if (init.longitude !== undefined) this.longitude = init.longitude;
       if (init.status !== undefined) this.status = init.status;
       if (init.workCount !== undefined) this.workCount = init.workCount;
+      if (init.badCount !== undefined) this.badCount = init.badCount;
+      if (init.rottenCount !== undefined) this.rottenCount = init.rottenCount;
+      if (init.greenSkinCount !== undefined) this.greenSkinCount = init.greenSkinCount;
+      if (init.mechanicalDamageCount !== undefined) this.mechanicalDamageCount = init.mechanicalDamageCount;
+      if (init.sproutedCount !== undefined) this.sproutedCount = init.sproutedCount;
       if (init.isLocked !== undefined) this.isLocked = init.isLocked;
       if (init.lockedBy !== undefined) this.lockedBy = init.lockedBy;
       if (init.lockedAt !== undefined) this.lockedAt = init.lockedAt;

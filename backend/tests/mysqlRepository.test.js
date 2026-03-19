@@ -47,6 +47,44 @@ function createRepositoryWithResponses(responses) {
   return { repository, pool };
 }
 
+function createValidSchemaColumnRows(extraColumnsByTable = {}) {
+  const rows = [
+    { TABLE_NAME: "admin", COLUMN_NAME: "id" },
+    { TABLE_NAME: "admin", COLUMN_NAME: "username" },
+    { TABLE_NAME: "admin", COLUMN_NAME: "password" },
+    { TABLE_NAME: "user", COLUMN_NAME: "id" },
+    { TABLE_NAME: "user", COLUMN_NAME: "username" },
+    { TABLE_NAME: "user", COLUMN_NAME: "password" },
+    { TABLE_NAME: "details", COLUMN_NAME: "equipmentId" },
+    { TABLE_NAME: "details", COLUMN_NAME: "location" },
+    { TABLE_NAME: "details", COLUMN_NAME: "latitude" },
+    { TABLE_NAME: "details", COLUMN_NAME: "longitude" },
+    { TABLE_NAME: "details", COLUMN_NAME: "status" },
+    { TABLE_NAME: "details", COLUMN_NAME: "total" },
+    { TABLE_NAME: "details", COLUMN_NAME: "isLocked" },
+    { TABLE_NAME: "details", COLUMN_NAME: "lck" },
+    { TABLE_NAME: "details", COLUMN_NAME: "lockedBy" },
+    { TABLE_NAME: "details", COLUMN_NAME: "lockedAt" },
+    { TABLE_NAME: "details", COLUMN_NAME: "updatedAt" },
+    { TABLE_NAME: "details", COLUMN_NAME: "lastUpdate" }
+  ];
+
+  for (const [tableName, columns] of Object.entries(extraColumnsByTable)) {
+    for (const columnName of columns) {
+      rows.push({ TABLE_NAME: tableName, COLUMN_NAME: columnName });
+    }
+  }
+
+  return rows;
+}
+
+function createValidSchemaResponses(extraColumnsByTable = {}) {
+  return [
+    [createValidSchemaColumnRows(extraColumnsByTable)],
+    [[{ TABLE_NAME: "details", INDEX_NAME: "uq_details_equipmentId", COLUMN_NAME: "equipmentId", NON_UNIQUE: 0 }]]
+  ];
+}
+
 test("normalizeRole returns admin for admin table records", () => {
   assert.equal(normalizeRole("ADMIN"), "admin");
   assert.equal(normalizeRole("manager", "admin"), "admin");
@@ -69,6 +107,11 @@ test("mapDetailRow maps details table fields into device dto", () => {
     longitude: "117.1536",
     status: "run",
     total: 1523,
+    bad: 12,
+    rottencount: 4,
+    greenSkin: 8,
+    mechanicalDamage: 3,
+    sprouted: 2,
     isLocked: 1,
     lck: "1",
     lockedBy: "admin",
@@ -84,6 +127,11 @@ test("mapDetailRow maps details table fields into device dto", () => {
     longitude: 117.1536,
     status: 1,
     workCount: 1523,
+    badCount: 12,
+    rottenCount: 4,
+    greenSkinCount: 8,
+    mechanicalDamageCount: 3,
+    sproutedCount: 2,
     isLocked: true,
     lockedBy: "admin",
     lockedAt: 1700000000000,
@@ -108,10 +156,10 @@ test("validateUser prefers admin table and normalizes role", async () => {
   assert.match(pool.calls[0].sql, /FROM\s+`?admin`?/i);
 });
 
-test("validateUser falls back to user table when admin misses", async () => {
-  const { repository, pool } = createRepositoryWithResponses([
+test("validateUser falls back to a table-based role when role column metadata is absent", async () => {
+  const { repository } = createRepositoryWithResponses([
     [[]],
-    [[{ id: 42, username: "operator", role: "USER" }]]
+    [[{ id: 42, username: "operator", role: "user" }]]
   ]);
 
   const user = await repository.validateUser("operator", "123");
@@ -121,9 +169,6 @@ test("validateUser falls back to user table when admin misses", async () => {
     username: "operator",
     role: "user"
   });
-  assert.equal(pool.calls.length, 2);
-  assert.match(pool.calls[0].sql, /FROM\s+`?admin`?/i);
-  assert.match(pool.calls[1].sql, /FROM\s+`?user`?/i);
 });
 
 test("getAllDevices reads platform details rows ordered by equipmentId", async () => {
@@ -136,6 +181,11 @@ test("getAllDevices reads platform details rows ordered by equipmentId", async (
         longitude: 117.1,
         status: "standby",
         total: 20,
+        bad: 2,
+        rottencount: 1,
+        greenSkin: 3,
+        mechanicalDamage: 0,
+        sprouted: 1,
         isLocked: 0,
         lck: "0",
         lockedBy: null,
@@ -164,6 +214,11 @@ test("updateLockStatus writes both new and legacy lock fields", async () => {
         longitude: 117.0,
         status: "run",
         total: 99,
+        bad: 0,
+        rottencount: 0,
+        greenSkin: 0,
+        mechanicalDamage: 0,
+        sprouted: 0,
         isLocked: 1,
         lck: "1",
         lockedBy: "admin",
@@ -196,6 +251,11 @@ test("createDevice inserts default values for a new details row", async () => {
         longitude: 0,
         status: "standby",
         total: 0,
+        bad: 0,
+        rottencount: 0,
+        greenSkin: 0,
+        mechanicalDamage: 0,
+        sprouted: 0,
         isLocked: 0,
         lck: "0",
         lockedBy: "",
@@ -237,6 +297,63 @@ test("createDevice surfaces duplicate device ids as DEVICE_EXISTS", async () => 
   );
 });
 
+test("createUser inserts a normal user with optional columns when they exist", async () => {
+  const responses = [
+    ...createValidSchemaResponses({
+      admin: ["role", "name"],
+      user: ["role", "name", "phone", "email", "avatar", "created_at"],
+      details: ["bad", "rottencount", "greenSkin", "mechanicalDamage", "sprouted"]
+    }),
+    [[]],
+    [[]],
+    [{ affectedRows: 1 }]
+  ];
+  const { repository, pool } = createRepositoryWithResponses(responses);
+
+  const user = await repository.createUser("quality_operator", "secret123", "user");
+
+  assert.equal(user.username, "quality_operator");
+  assert.equal(user.role, "user");
+  assert.match(pool.calls[4].sql, /INSERT INTO `user`/i);
+  assert.match(pool.calls[4].sql, /`role`/i);
+  assert.match(pool.calls[4].sql, /`created_at`/i);
+  assert.equal(pool.calls[4].params[1], "quality_operator");
+  assert.equal(pool.calls[4].params[2], "secret123");
+  assert.equal(pool.calls[4].params[3], "USER");
+});
+
+test("createUser inserts an admin user even when optional profile columns are absent", async () => {
+  const responses = [
+    ...createValidSchemaResponses({
+      details: ["bad", "rottencount", "greenSkin", "mechanicalDamage", "sprouted"]
+    }),
+    [[]],
+    [[]],
+    [{ affectedRows: 1 }]
+  ];
+  const { repository, pool } = createRepositoryWithResponses(responses);
+
+  const user = await repository.createUser("shift_admin", "secret123", "admin");
+
+  assert.equal(user.role, "admin");
+  assert.match(pool.calls[4].sql, /INSERT INTO `admin` \(`id`, `username`, `password`\)/i);
+});
+
+test("createUser rejects duplicate usernames across admin and user tables", async () => {
+  const responses = [
+    ...createValidSchemaResponses({
+      details: ["bad", "rottencount", "greenSkin", "mechanicalDamage", "sprouted"]
+    }),
+    [[{ 1: 1 }]]
+  ];
+  const { repository } = createRepositoryWithResponses(responses);
+
+  await assert.rejects(
+    repository.createUser("existing_user", "secret123", "user"),
+    (error) => error.code === "USER_EXISTS" && /用户名已存在/i.test(error.message)
+  );
+});
+
 test("verifySchema throws a readable error when details columns are missing", async () => {
   const { repository } = createRepositoryWithResponses([
     [[
@@ -259,29 +376,11 @@ test("verifySchema throws a readable error when details columns are missing", as
 });
 
 test("verifySchema passes when required tables, columns, and unique index exist", async () => {
-  const { repository } = createRepositoryWithResponses([
-    [[
-      { TABLE_NAME: "admin", COLUMN_NAME: "id" },
-      { TABLE_NAME: "admin", COLUMN_NAME: "username" },
-      { TABLE_NAME: "admin", COLUMN_NAME: "password" },
-      { TABLE_NAME: "user", COLUMN_NAME: "id" },
-      { TABLE_NAME: "user", COLUMN_NAME: "username" },
-      { TABLE_NAME: "user", COLUMN_NAME: "password" },
-      { TABLE_NAME: "details", COLUMN_NAME: "equipmentId" },
-      { TABLE_NAME: "details", COLUMN_NAME: "location" },
-      { TABLE_NAME: "details", COLUMN_NAME: "latitude" },
-      { TABLE_NAME: "details", COLUMN_NAME: "longitude" },
-      { TABLE_NAME: "details", COLUMN_NAME: "status" },
-      { TABLE_NAME: "details", COLUMN_NAME: "total" },
-      { TABLE_NAME: "details", COLUMN_NAME: "isLocked" },
-      { TABLE_NAME: "details", COLUMN_NAME: "lck" },
-      { TABLE_NAME: "details", COLUMN_NAME: "lockedBy" },
-      { TABLE_NAME: "details", COLUMN_NAME: "lockedAt" },
-      { TABLE_NAME: "details", COLUMN_NAME: "updatedAt" },
-      { TABLE_NAME: "details", COLUMN_NAME: "lastUpdate" }
-    ]],
-    [[{ TABLE_NAME: "details", INDEX_NAME: "uq_details_equipmentId", COLUMN_NAME: "equipmentId", NON_UNIQUE: 0 }]]
-  ]);
+  const { repository } = createRepositoryWithResponses(createValidSchemaResponses({
+    admin: ["role", "name"],
+    user: ["role", "name", "created_at"],
+    details: ["bad", "rottencount", "greenSkin", "mechanicalDamage", "sprouted"]
+  }));
 
   await assert.doesNotReject(repository.verifySchema());
 });

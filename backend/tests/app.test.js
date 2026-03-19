@@ -12,6 +12,11 @@ function createRepositoryStub() {
       longitude: 117.1536,
       status: 1,
       workCount: 1523,
+      badCount: 12,
+      rottenCount: 4,
+      greenSkinCount: 8,
+      mechanicalDamageCount: 3,
+      sproutedCount: 2,
       isLocked: false,
       lockedBy: "",
       lockedAt: 0,
@@ -25,6 +30,11 @@ function createRepositoryStub() {
       longitude: 117.0073,
       status: 0,
       workCount: 2341,
+      badCount: 9,
+      rottenCount: 1,
+      greenSkinCount: 5,
+      mechanicalDamageCount: 2,
+      sproutedCount: 1,
       isLocked: true,
       lockedBy: "admin",
       lockedAt: 1699913600000,
@@ -75,6 +85,11 @@ function createRepositoryStub() {
         longitude: 0,
         status: 2,
         workCount: 0,
+        badCount: 0,
+        rottenCount: 0,
+        greenSkinCount: 0,
+        mechanicalDamageCount: 0,
+        sproutedCount: 0,
         isLocked: false,
         lockedBy: "",
         lockedAt: 0,
@@ -82,6 +97,23 @@ function createRepositoryStub() {
       };
       devices.push(device);
       return device;
+    },
+    async createUser(username, password, role) {
+      if (!username || !password || !role) {
+        throw new Error("Invalid createUser payload");
+      }
+
+      if (username === "admin" || username === "operator" || username === "existing_user") {
+        const error = new Error("用户名已存在");
+        error.code = "USER_EXISTS";
+        throw error;
+      }
+
+      return {
+        id: role === "admin" ? "ADMNEW001" : "USRNEW001",
+        username,
+        role
+      };
     }
   };
 }
@@ -160,6 +192,7 @@ test("GET /api/devices/:id returns device detail", async () => {
     assert.equal(response.status, 200);
     assert.equal(response.body.id, "DEV003");
     assert.equal(response.body.isLocked, true);
+    assert.equal(response.body.badCount, 9);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
@@ -290,6 +323,182 @@ test("POST /api/devices rejects duplicate device id", async () => {
 
     assert.equal(response.status, 409);
     assert.deepEqual(response.body, { message: "设备编号已存在" });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("POST /api/users creates a normal user for admin token", async () => {
+  const app = createApp({ repository: createRepositoryStub() });
+  const server = app.listen(0);
+
+  try {
+    const login = await requestJson(server, "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "admin123" })
+    });
+
+    const response = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${login.body.token}`
+      },
+      body: JSON.stringify({ username: "quality_operator", password: "secret123", role: "user" })
+    });
+
+    assert.equal(response.status, 201);
+    assert.equal(response.body.username, "quality_operator");
+    assert.equal(response.body.role, "user");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("POST /api/users creates an admin user for admin token", async () => {
+  const app = createApp({ repository: createRepositoryStub() });
+  const server = app.listen(0);
+
+  try {
+    const login = await requestJson(server, "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "admin123" })
+    });
+
+    const response = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${login.body.token}`
+      },
+      body: JSON.stringify({ username: "shift_admin", password: "secret123", role: "admin" })
+    });
+
+    assert.equal(response.status, 201);
+    assert.equal(response.body.role, "admin");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("POST /api/users rejects requests without token", async () => {
+  const app = createApp({ repository: createRepositoryStub() });
+  const server = app.listen(0);
+
+  try {
+    const response = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "quality_operator", password: "secret123", role: "user" })
+    });
+
+    assert.equal(response.status, 401);
+    assert.deepEqual(response.body, { message: "请先登录" });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("POST /api/users rejects non-admin tokens", async () => {
+  const app = createApp({ repository: createRepositoryStub() });
+  const server = app.listen(0);
+
+  try {
+    const login = await requestJson(server, "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "operator", password: "operator123" })
+    });
+
+    const response = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${login.body.token}`
+      },
+      body: JSON.stringify({ username: "quality_operator", password: "secret123", role: "user" })
+    });
+
+    assert.equal(response.status, 403);
+    assert.deepEqual(response.body, { message: "仅管理员可执行此操作" });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("POST /api/users rejects invalid payloads", async () => {
+  const app = createApp({ repository: createRepositoryStub() });
+  const server = app.listen(0);
+
+  try {
+    const login = await requestJson(server, "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "admin123" })
+    });
+
+    const invalidUsername = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${login.body.token}`
+      },
+      body: JSON.stringify({ username: "bad user", password: "secret123", role: "user" })
+    });
+
+    const invalidPassword = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${login.body.token}`
+      },
+      body: JSON.stringify({ username: "good_user", password: "123", role: "user" })
+    });
+
+    const invalidRole = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${login.body.token}`
+      },
+      body: JSON.stringify({ username: "good_user", password: "secret123", role: "manager" })
+    });
+
+    assert.equal(invalidUsername.status, 400);
+    assert.deepEqual(invalidUsername.body, { message: "用户名格式不正确" });
+    assert.equal(invalidPassword.status, 400);
+    assert.deepEqual(invalidPassword.body, { message: "密码长度需为 6-32 位" });
+    assert.equal(invalidRole.status, 400);
+    assert.deepEqual(invalidRole.body, { message: "用户角色无效" });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("POST /api/users rejects duplicate usernames", async () => {
+  const app = createApp({ repository: createRepositoryStub() });
+  const server = app.listen(0);
+
+  try {
+    const login = await requestJson(server, "/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "admin123" })
+    });
+
+    const response = await requestJson(server, "/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${login.body.token}`
+      },
+      body: JSON.stringify({ username: "existing_user", password: "secret123", role: "user" })
+    });
+
+    assert.equal(response.status, 409);
+    assert.deepEqual(response.body, { message: "用户名已存在" });
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

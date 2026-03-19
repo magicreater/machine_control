@@ -4,6 +4,7 @@
     "pages/LoginPage",
     "pages/MainPage",
     "pages/CreateDevicePage",
+    "pages/CreateUserPage",
     "pages/DeviceDetailPage",
     "pages/LockControlPage"
   ]

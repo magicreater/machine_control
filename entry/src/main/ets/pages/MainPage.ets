@@ -140,6 +140,10 @@ struct MainPage {
     router.pushUrl({ url: 'pages/CreateDevicePage' });
   }
 
+  private navigateToCreateUser(): void {
+    router.pushUrl({ url: 'pages/CreateUserPage' });
+  }
+
   private handleLogout(): void {
     UserDao.getInstance().clearSession();
     AuthManager.getInstance().logout();
@@ -392,6 +396,24 @@ struct MainPage {
       .borderRadius(20)
       .border({ width: 1, color: AppColors.BORDER })
 
+      if (this.isAdmin()) {
+        Column({ space: 12 }) {
+          Text('管理员操作')
+            .fontSize(AppTypography.SIZE_CAPTION)
+            .fontColor(AppColors.TEXT_TERTIARY)
+            .width('100%')
+
+          Column({ space: 1 }) {
+            this.menuActionItem('新增用户', '创建管理员或普通用户', () => this.navigateToCreateUser())
+          }
+          .width('100%')
+          .backgroundColor(AppColors.BG_SECONDARY)
+          .borderRadius(20)
+          .border({ width: 1, color: AppColors.BORDER })
+        }
+        .width('100%')
+      }
+
       Text('退出登录')
         .fontSize(AppTypography.SIZE_BODY)
         .fontWeight(AppTypography.WEIGHT_MEDIUM)
@@ -426,5 +448,30 @@ struct MainPage {
     .height(54)
     .padding({ left: 16, right: 16 })
     .justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  @Builder
+  private menuActionItem(label: string, value: string, onClick: () => void) {
+    Row() {
+      Column({ space: 4 }) {
+        Text(label)
+          .fontSize(AppTypography.SIZE_BODY)
+          .fontColor(AppColors.TEXT_PRIMARY)
+
+        Text(value)
+          .fontSize(AppTypography.SIZE_CAPTION)
+          .fontColor(AppColors.TEXT_SECONDARY)
+      }
+      .alignItems(HorizontalAlign.Start)
+
+      Text('前往')
+        .fontSize(AppTypography.SIZE_CAPTION)
+        .fontColor(AppColors.PRIMARY)
+    }
+    .width('100%')
+    .height(64)
+    .padding({ left: 16, right: 16 })
+    .justifyContent(FlexAlign.SpaceBetween)
+    .onClick(onClick)
   }
 }

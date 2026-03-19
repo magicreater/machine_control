@@ -7,6 +7,12 @@ interface RouteParams {
   deviceId: string;
 }
 
+interface QualityStatItem {
+  label: string;
+  value: number;
+  accentColor: string;
+}
+
 /**
  * 设备详情页面
  */
@@ -103,10 +109,34 @@ struct DeviceDetailPage {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
+  private getQualityStats(): QualityStatItem[] {
+    if (!this.device) {
+      return [];
+    }
+
+    return [
+      { label: '坏果', value: this.device.badCount, accentColor: AppColors.DANGER },
+      { label: '腐烂', value: this.device.rottenCount, accentColor: AppColors.WARNING },
+      { label: '青皮', value: this.device.greenSkinCount, accentColor: AppColors.PRIMARY },
+      { label: '机械损伤', value: this.device.mechanicalDamageCount, accentColor: AppColors.TEXT_SECONDARY },
+      { label: '发芽', value: this.device.sproutedCount, accentColor: AppColors.SUCCESS }
+    ];
+  }
+
+  private getQualityStatRows(): QualityStatItem[][] {
+    const stats = this.getQualityStats();
+    const rows: QualityStatItem[][] = [];
+
+    for (let index = 0; index < stats.length; index += 2) {
+      rows.push(stats.slice(index, index + 2));
+    }
+
+    return rows;
+  }
+
   build() {
     Stack() {
       Column() {
-        // 导航栏
         Row() {
           Row() {
             Text('←')
@@ -134,7 +164,6 @@ struct DeviceDetailPage {
         if (this.device) {
           Scroll() {
             Column({ space: 16 }) {
-              // 状态卡片
               Column({ space: 16 }) {
                 Row() {
                   Column({ space: 8 }) {
@@ -173,7 +202,6 @@ struct DeviceDetailPage {
               .borderRadius(16)
               .border({ width: 1, color: AppColors.BORDER })
 
-              // 基本信息
               Column({ space: 16 }) {
                 Text('基本信息')
                   .fontSize(AppTypography.SIZE_SUBTITLE)
@@ -200,7 +228,6 @@ struct DeviceDetailPage {
               .borderRadius(16)
               .border({ width: 1, color: AppColors.BORDER })
 
-              // 工作统计
               Column({ space: 16 }) {
                 Text('工作统计')
                   .fontSize(AppTypography.SIZE_SUBTITLE)
@@ -219,8 +246,33 @@ struct DeviceDetailPage {
                     .margin({ top: 8 })
                 }
                 .width('100%')
-                .padding({ top: 16, bottom: 16 })
+                .padding({ top: 16, bottom: 8 })
                 .alignItems(HorizontalAlign.Center)
+
+                Divider().color(AppColors.BORDER)
+
+                Column({ space: 12 }) {
+                  Text('质量统计')
+                    .fontSize(AppTypography.SIZE_CAPTION)
+                    .fontColor(AppColors.TEXT_TERTIARY)
+                    .width('100%')
+
+                  ForEach(this.getQualityStatRows(), (row: QualityStatItem[], rowIndex: number) => {
+                    Row({ space: 12 }) {
+                      ForEach(row, (item: QualityStatItem) => {
+                        this.qualityStatCard(item)
+                      }, (item: QualityStatItem) => item.label)
+
+                      if (row.length === 1) {
+                        Blank()
+                          .layoutWeight(1)
+                      }
+                    }
+                    .width('100%')
+                  }, (_row: QualityStatItem[], rowIndex: number) => `quality_row_${rowIndex}`)
+                }
+                .width('100%')
+                .padding({ top: 8 })
               }
               .width('100%')
               .padding(20)
@@ -228,7 +280,6 @@ struct DeviceDetailPage {
               .borderRadius(16)
               .border({ width: 1, color: AppColors.BORDER })
 
-              // 操作按钮
               if (AuthManager.getInstance().canLockDevice()) {
                 Column() {
                   if (this.device.isLocked) {
@@ -271,6 +322,27 @@ struct DeviceDetailPage {
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
+  }
+
+  @Builder
+  private qualityStatCard(item: QualityStatItem) {
+    Column({ space: 8 }) {
+      Text(item.label)
+        .fontSize(AppTypography.SIZE_CAPTION)
+        .fontColor(AppColors.TEXT_SECONDARY)
+        .width('100%')
+
+      Text(item.value.toLocaleString())
+        .fontSize(AppTypography.SIZE_TITLE)
+        .fontWeight(AppTypography.WEIGHT_BOLD)
+        .fontColor(item.accentColor)
+        .width('100%')
+    }
+    .layoutWeight(1)
+    .padding(14)
+    .backgroundColor(AppColors.BG_TERTIARY)
+    .borderRadius(16)
+    .border({ width: 1, color: AppColors.BORDER })
   }
 
   private getGradient(): [string, number][] {

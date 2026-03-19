@@ -23,6 +23,15 @@ function readBearerToken(headerValue) {
   return match ? match[1].trim() : "";
 }
 
+function normalizeRole(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return normalized === "admin" || normalized === "user" ? normalized : "";
+}
+
 export function createApp({ repository, sessionStore = new InMemorySessionStore() }) {
   if (!repository) {
     throw new Error("repository is required");
@@ -122,6 +131,38 @@ export function createApp({ repository, sessionStore = new InMemorySessionStore(
     } catch (error) {
       if (error?.code === "DEVICE_EXISTS") {
         return res.status(409).json({ message: "设备编号已存在" });
+      }
+      return next(error);
+    }
+  });
+
+  app.post("/api/users", async (req, res, next) => {
+    try {
+      if (!requireAdmin(req, res)) {
+        return;
+      }
+
+      const rawUsername = typeof req.body?.username === "string" ? req.body.username.trim() : "";
+      const rawPassword = typeof req.body?.password === "string" ? req.body.password : "";
+      const role = normalizeRole(req.body?.role);
+
+      if (!rawUsername || /\s/.test(rawUsername) || rawUsername.length > 32) {
+        return res.status(400).json({ message: "用户名格式不正确" });
+      }
+
+      if (rawPassword.length < 6 || rawPassword.length > 32) {
+        return res.status(400).json({ message: "密码长度需为 6-32 位" });
+      }
+
+      if (!role) {
+        return res.status(400).json({ message: "用户角色无效" });
+      }
+
+      const user = await repository.createUser(rawUsername, rawPassword, role);
+      return res.status(201).json(user);
+    } catch (error) {
+      if (error?.code === "USER_EXISTS") {
+        return res.status(409).json({ message: "用户名已存在" });
       }
       return next(error);
     }
